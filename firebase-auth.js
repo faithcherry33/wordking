@@ -27,12 +27,14 @@ function normalizeStudentId(value) {
 
 function friendlyError(error) {
   const code = error?.code || "";
+  const detail = code ? ` (${code})` : "";
   if (code.includes("popup-closed")) return "Google 로그인 창이 닫혔습니다.";
   if (code.includes("not-found")) return "학생 ID 또는 비밀번호가 맞지 않습니다.";
   if (code.includes("already-exists")) return "이미 사용 중인 학생 ID입니다.";
-  if (code.includes("permission-denied")) return "이 작업을 할 권한이 없습니다.";
-  if (code.includes("unavailable")) return "Firebase 연결이 불안정합니다. 잠시 뒤 다시 시도하세요.";
-  return error?.message || "처리 중 오류가 발생했습니다.";
+  if (code.includes("permission-denied")) return `권한이 없습니다. Firestore 규칙 게시 상태를 확인해 주세요.${detail}`;
+  if (code.includes("unavailable")) return `Firebase 연결이 불안정합니다. 잠시 뒤 다시 시도하세요.${detail}`;
+  if (code.includes("internal")) return `Firebase 내부 오류입니다. firebase-config.js의 projectId/authDomain이 Firebase 콘솔 SDK 값과 정확히 같은지 확인해 주세요.${detail}`;
+  return `${error?.message || "처리 중 오류가 발생했습니다."}${detail}`;
 }
 
 function setUserPill(text) {
@@ -109,12 +111,17 @@ window.teacherGoogleLogin = async () => {
     alert("firebase-config.js에 Firebase 프로젝트 설정값을 먼저 입력해 주세요.");
     return;
   }
+  if (firebaseConfig.authDomain && firebaseConfig.projectId && !firebaseConfig.authDomain.includes(firebaseConfig.projectId)) {
+    alert(`firebase-config.js의 authDomain과 projectId가 서로 맞지 않아 보입니다.\nprojectId: ${firebaseConfig.projectId}\nauthDomain: ${firebaseConfig.authDomain}`);
+    return;
+  }
   try {
     localStorage.removeItem(STUDENT_SESSION_KEY);
     const provider = new firebaseApi.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
     await firebaseApi.signInWithPopup(auth, provider);
   } catch (error) {
+    console.error("teacherGoogleLogin failed", error);
     alert(friendlyError(error));
   }
 };

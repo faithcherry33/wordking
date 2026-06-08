@@ -22,8 +22,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow create: if isGoogleTeacherSelf(userId)
-        && request.resource.data.role == "teacher"
-        && request.resource.data.email == request.auth.token.email;
+        && request.resource.data.role == "teacher";
       allow read: if signedIn() && (
         request.auth.uid == userId ||
         (isTeacher() && resource.data.teacherId == request.auth.uid)

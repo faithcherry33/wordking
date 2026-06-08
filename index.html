@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>문맥 단어왕</title>
+  <style>
+    :root {
+      --ink: #17324d;
+      --muted: #66809a;
+      --line: #d9e7ee;
+      --paper: #fffef9;
+      --sky: #eaf7ff;
+      --blue: #2176c7;
+      --navy: #124b80;
+      --mint: #dff8ee;
+      --green: #16835b;
+      --yellow: #fff2b7;
+      --orange: #f59e45;
+      --rose: #ffe5e5;
+      --red: #c94141;
+      --shadow: 0 16px 40px rgba(38, 89, 123, .12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--ink);
+      font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      background: radial-gradient(circle at 8% 5%, #fff4bd 0 6%, transparent 17%),
+                  radial-gradient(circle at 96% 92%, #d7f4e9 0 7%, transparent 19%),
+                  #f5fbff;
+    }
+    button { font: inherit; cursor: pointer; }
+    .wrap { max-width: 1120px; margin: auto; padding: 28px 20px 48px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px; }
+    .brand { display:flex; gap:11px; align-items:center; font-size:22px; font-weight:900; color:var(--navy); }
+    .brand-mark { display:grid; place-items:center; width:42px; height:42px; border-radius:15px; background:var(--yellow); font-size:24px; }
+    .user-pill { padding:9px 14px; border-radius:999px; background:white; border:1px solid var(--line); font-size:14px; color:var(--muted); }
+    .card { background:rgba(255,255,255,.94); border:1px solid var(--line); border-radius:24px; box-shadow:var(--shadow); }
+    .login { max-width:780px; margin:52px auto; padding:42px; text-align:center; }
+    h1, h2, h3, p { margin-top:0; }
+    h1 { font-size:34px; letter-spacing:-1.4px; margin-bottom:12px; }
+    h2 { font-size:26px; letter-spacing:-.8px; }
+    h3 { font-size:18px; }
+    .sub { color:var(--muted); line-height:1.7; }
+    .sample-note { display:inline-block; margin:8px 0 22px; padding:8px 12px; border-radius:12px; background:#fff8dc; color:#88651b; font-size:13px; }
+    .login-actions { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:18px; }
+    .auth-form { display:grid; gap:14px; max-width:430px; margin:24px auto 0; text-align:left; }
+    .field { display:grid; gap:7px; }
+    .field label { color:var(--navy); font-size:14px; font-weight:800; }
+    .field input { width:100%; padding:13px 14px; color:var(--ink); background:white; border:1px solid var(--line); border-radius:12px; font:inherit; }
+    .field input:focus { outline:3px solid #d9efff; border-color:var(--blue); }
+    .form-message { min-height:22px; margin:2px 0 0; color:var(--muted); font-size:14px; text-align:center; }
+    .form-message.error { color:var(--red); }
+    .form-message.good { color:var(--green); }
+    .teacher-grid { display:grid; grid-template-columns:minmax(280px, .75fr) minmax(0, 1.25fr); gap:16px; }
+    .teacher-panel { padding:22px; }
+    .teacher-panel h3 { margin-bottom:6px; }
+    .account-note { padding:12px 14px; border-radius:12px; background:#fff8dc; color:#765b19; font-size:13px; line-height:1.6; }
+    .empty-row { padding:24px 10px; color:var(--muted); text-align:center; }
+    .student-id { color:var(--muted); font-size:12px; }
+    .btn { border:0; border-radius:14px; padding:13px 18px; background:var(--blue); color:white; font-weight:800; transition:.15s; }
+    .btn:hover { transform:translateY(-2px); filter:brightness(.98); }
+    .btn.secondary { color:var(--navy); background:var(--sky); }
+    .btn.white { color:var(--ink); background:white; border:1px solid var(--line); }
+    .btn.small { padding:9px 13px; border-radius:11px; font-size:14px; }
+    .dash-head { display:flex; align-items:end; justify-content:space-between; gap:16px; margin:24px 0 16px; }
+    .grid { display:grid; grid-template-columns:repeat(12, 1fr); gap:15px; }
+    .mode { grid-column:span 4; padding:21px; min-height:190px; position:relative; overflow:hidden; }
+    .mode.wide { grid-column:span 6; min-height:165px; }
+    .section-label { grid-column:span 12; margin:10px 2px -3px; color:var(--navy); font-size:17px; font-weight:900; }
+    .mode-icon { font-size:29px; margin-bottom:14px; }
+    .mode p { color:var(--muted); font-size:14px; line-height:1.55; margin-bottom:18px; }
+    .tag { padding:5px 9px; color:var(--green); background:var(--mint); border-radius:99px; font-size:12px; font-weight:800; }
+    .rank { grid-column:span 12; padding:20px; }
+    .rank-row { display:flex; gap:10px; flex-wrap:wrap; }
+    .medal { flex:1; min-width:170px; padding:13px; border-radius:15px; background:#f7fbfd; font-size:14px; }
+    .medal b { display:block; margin-bottom:4px; }
+    .quiz-shell { padding:24px; }
+    .quiz-head { margin-bottom:18px; }
+    .quiz-stage { margin:0 0 8px 92px; color:var(--muted); font-size:14px; font-weight:800; }
+    .quiz-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .live-stats { display:flex; justify-content:flex-end; gap:7px; flex-wrap:wrap; margin-top:10px; }
+    .live-stat { padding:5px 9px; border-radius:999px; color:#547087; background:#f2f8fb; font-size:12px; font-weight:800; }
+    .live-stat.good { color:var(--green); background:var(--mint); }
+    .live-stat.bad { color:var(--red); background:var(--rose); }
+    .progress { flex:1; height:10px; overflow:hidden; border-radius:99px; background:#e7f1f5; }
+    .progress > div { height:100%; border-radius:99px; background:linear-gradient(90deg, #38b98b, #2176c7); }
+    .question { display:grid; gap:20px; min-height:420px; }
+    .question.single { grid-template-rows:auto 1fr; }
+    .question.multi { grid-template-columns:1.05fr .95fr; }
+    .passage { display:flex; flex-direction:column; justify-content:center; padding:26px; border-radius:18px; background:var(--paper); border:1px solid #f2e8c9; font-size:22px; line-height:1.85; word-break:keep-all; }
+    .passage small { display:block; color:#a1874b; font-size:13px; font-weight:800; margin-bottom:9px; }
+    .passage-text { display:block; }
+    .question.single .passage { overflow-x:auto; }
+    .question.single .passage-text { min-width:max-content; white-space:nowrap; }
+    .question.multi .passage-text { text-indent:1em; }
+    u { text-decoration-color:var(--orange); text-decoration-thickness:4px; text-underline-offset:6px; font-weight:900; }
+    .choices { display:grid; gap:10px; align-content:center; }
+    .choices h3 { margin-bottom:4px; color:var(--navy); }
+    .dictionary { overflow:hidden; border:1px solid var(--line); border-radius:16px; background:white; }
+    .dictionary-head { padding:13px 15px; color:var(--muted); background:#f6fafc; border-bottom:1px solid var(--line); font-size:13px; font-weight:800; }
+    .dictionary-guide { display:flex; gap:7px; flex-wrap:wrap; padding:10px 15px; color:#547087; background:#fbfdfe; border-bottom:1px solid var(--line); font-size:12px; }
+    .guide-chip { padding:4px 7px; border-radius:8px; background:#eaf4fb; }
+    .entry + .entry { border-top:1px solid var(--line); }
+    .headword { padding:13px 15px 7px; color:#1163ad; font-size:19px; font-weight:900; }
+    .headword sup { color:var(--blue); font-size:12px; }
+    .choice { display:block; width:100%; padding:10px 15px 10px 34px; text-align:left; color:var(--ink); border:0; background:white; line-height:1.5; position:relative; }
+    .choice:last-child { padding-bottom:14px; }
+    .sense-no { position:absolute; left:15px; color:var(--blue); font-weight:800; }
+    .pos { color:#5982a3; font-size:12px; margin-right:5px; }
+    .choice:hover { border-color:#78b4e0; background:#f5fbff; }
+    .choice.correct { border-color:#43ad83; background:var(--mint); }
+    .choice.wrong { border-color:#e77f7f; background:var(--rose); }
+    .feedback { min-height:25px; margin:14px 0 0; font-weight:800; }
+    .feedback.good { color:var(--green); } .feedback.bad { color:var(--red); }
+    .quiz-foot { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:15px; }
+    .stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px; }
+    .stat { padding:15px; background:#f7fbfd; border-radius:15px; }
+    .stat b { display:block; margin-top:6px; font-size:24px; color:var(--navy); }
+    .teacher { padding:24px; }
+    .result-groups { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:20px 0; text-align:left; }
+    .result-group { padding:16px; border-radius:16px; background:#f7fbfd; }
+    .result-group.good { background:#effbf6; }
+    .result-group.bad { background:#fff4f4; }
+    .result-group h3 { margin-bottom:10px; }
+    .result-list { margin:0; padding-left:20px; color:var(--ink); font-size:14px; line-height:1.65; }
+    .result-list li + li { margin-top:7px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { padding:13px 9px; border-bottom:1px solid var(--line); text-align:left; }
+    th { color:var(--muted); font-size:12px; }
+    .student-link { padding:0; border:0; color:var(--blue); background:transparent; font-weight:800; }
+    .detail { margin-top:18px; padding:18px; background:#f8fcfe; border-radius:16px; }
+    .hidden { display:none !important; }
+    @media (max-width:760px) {
+      .mode, .mode.wide { grid-column:span 12; }
+      .question.multi { grid-template-columns:1fr; }
+      .stats { grid-template-columns:repeat(2, 1fr); }
+      .passage { font-size:19px; }
+      .login { padding:26px 20px; margin-top:22px; }
+      .result-groups { grid-template-columns:1fr; }
+      .teacher-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="topbar">
+      <div class="brand">문맥 단어왕</div>
+      <div id="user-pill" class="user-pill hidden"></div>
+    </header>
+
+    <section id="login" class="card login">
+      <h1>문장 속 단어의 뜻을 찾아볼까요?</h1>
+      <p class="sub">문맥을 살펴보고 국어사전처럼 제시된 뜻 가운데 알맞은 뜻을 골라 보세요.</p>
+      <div class="sample-note">문제은행을 불러오는 중입니다.</div>
+      <div class="login-actions">
+        <button class="btn" onclick="openStudentLogin()">학생 로그인</button>
+        <button class="btn secondary" onclick="teacherGoogleLogin()">G&nbsp; 교사 Google 로그인</button>
+      </div>
+      <p id="firebase-status" class="form-message"></p>
+    </section>
+
+    <section id="student-login" class="card login hidden">
+      <h2>학생 로그인</h2>
+      <p class="sub">선생님이 만들어 준 학생 ID와 비밀번호를 입력하세요.</p>
+      <form class="auth-form" onsubmit="studentPasswordLogin(event)">
+        <div class="field">
+          <label for="student-login-id">학생 ID</label>
+          <input id="student-login-id" name="studentId" autocomplete="username" maxlength="24" required>
+        </div>
+        <div class="field">
+          <label for="student-login-password">비밀번호</label>
+          <input id="student-login-password" name="password" type="password" autocomplete="current-password" minlength="6" required>
+        </div>
+        <p id="student-login-message" class="form-message"></p>
+        <button class="btn" type="submit">로그인</button>
+        <button class="btn white" type="button" onclick="backToLogin()">돌아가기</button>
+      </form>
+    </section>
+
+    <section id="student-dashboard" class="hidden">
+      <div class="dash-head">
+        <div><h2>오늘도 차근차근 뜻을 찾아봐요</h2><p class="sub">연습을 마치고 도전 문제에서 단어왕에 도전해 보세요.</p></div>
+        <button class="btn white small" onclick="appLogout()">로그아웃</button>
+      </div>
+      <div class="grid">
+        <div class="section-label">사전에서 여러 뜻 찾기</div>
+        <article class="card mode"><div class="mode-icon">①</div><h3>연습 1단계</h3><p>한 문장을 살펴보고 밑줄 친 낱말의 뜻을 골라요.</p><button class="btn small" onclick="startQuiz('level1')">연습하기</button></article>
+        <article class="card mode"><div class="mode-icon">②</div><h3>연습 2단계</h3><p>여러 문장이나 문단 전체를 읽고 낱말의 뜻을 골라요.</p><button class="btn small" onclick="startQuiz('level2')">연습하기</button></article>
+        <article class="card mode"><div class="mode-icon">↺</div><h3>오답 복습</h3><p>앞에서 틀렸던 문제만 다시 만나 꼼꼼히 확인해요.</p><span class="tag" id="wrong-count">틀린 문제 2개</span><br><br><button class="btn small" onclick="startQuiz('review')">복습하기</button></article>
+        <article class="card mode wide"><div class="mode-icon">★</div><h3>1·2단계 오늘의 도전</h3><p>사전 뜻 찾기 20문제를 풀어요. 절반은 1·2단계에서 틀렸던 문제로 구성돼요.</p><button class="btn small" onclick="startQuiz('dictionaryChallenge')">도전하기</button></article>
+        <article class="card mode wide"><div class="mode-icon">✓</div><h3>나의 기록</h3><p>전체 정답률 <b>78%</b><br>한 번에 맞힌 문제 7개 · 다시 맞힌 문제 3개</p></article>
+        <div class="section-label">낯선 낱말의 뜻 추측하기</div>
+        <article class="card mode wide"><div class="mode-icon">③</div><h3>연습 3단계</h3><p>낯선 낱말의 뜻을 앞뒤 문맥으로 추측해요.</p><button class="btn small" onclick="startQuiz('level3')">연습하기</button></article>
+        <article class="card mode wide"><div class="mode-icon">◆</div><h3>3단계 오늘의 도전</h3><p>문맥 추론 20문제를 풀어요. 절반은 3단계에서 틀렸던 문제로 구성돼요.</p><button class="btn small" onclick="startQuiz('inferenceChallenge')">도전하기</button></article>
+        <article class="card rank">
+          <h3>오늘의 단어왕 · 이번 주 단어왕</h3>
+          <p class="sub">학생별 기록 저장 기능을 연결한 뒤 사용할 수 있습니다.</p>
+          <button class="btn white small" onclick="showComingSoon('랭킹 시스템')">랭킹 보기</button>
+        </article>
+      </div>
+    </section>
+
+    <section id="quiz" class="card quiz-shell hidden">
+      <div class="quiz-head">
+        <div class="quiz-stage" id="quiz-label"></div>
+        <div class="quiz-top">
+          <button class="btn white small" onclick="showStudent()">← 나가기</button>
+          <div class="progress"><div id="progress-bar"></div></div>
+          <strong id="progress-text"></strong>
+        </div>
+        <div class="live-stats">
+          <span class="live-stat" id="live-rate">현재 정답률 0%</span>
+          <span class="live-stat good" id="live-correct">맞은 문제 0</span>
+          <span class="live-stat bad" id="live-wrong">틀린 문제 0</span>
+        </div>
+      </div>
+      <div id="question" class="question"></div>
+      <p id="feedback" class="feedback"></p>
+      <div class="quiz-foot">
+        <button id="next" class="btn hidden" onclick="nextQuestion()">다음 문제</button>
+      </div>
+    </section>
+
+    <section id="result" class="card login hidden">
+      <h2>연습을 마쳤어요</h2>
+      <p id="result-copy" class="sub"></p>
+      <div class="result-groups">
+        <section class="result-group good"><h3>맞은 문제</h3><ol class="result-list" id="correct-results"></ol></section>
+        <section class="result-group bad"><h3>틀린 문제</h3><ol class="result-list" id="wrong-results"></ol></section>
+      </div>
+      <button class="btn" onclick="showStudent()">학습 화면으로 돌아가기</button>
+    </section>
+
+    <section id="teacher-dashboard" class="hidden">
+      <div class="dash-head">
+        <div><h2>학생 계정 관리</h2><p class="sub"><span id="teacher-name">선생님</span>이 만든 학생만 이 학급에 연결됩니다.</p></div>
+        <button class="btn white small" onclick="appLogout()">로그아웃</button>
+      </div>
+      <div class="teacher-grid">
+        <section class="card teacher-panel">
+          <h3>학생 계정 만들기</h3>
+          <p class="sub">학생에게 전달할 ID와 초기 비밀번호를 정하세요.</p>
+          <form class="auth-form" onsubmit="createStudentAccount(event)">
+            <div class="field">
+              <label for="new-student-name">학생 이름</label>
+              <input id="new-student-name" maxlength="20" required placeholder="예: 김하늘">
+            </div>
+            <div class="field">
+              <label for="new-student-id">학생 ID</label>
+              <input id="new-student-id" maxlength="24" required placeholder="영문 소문자, 숫자, -, _">
+            </div>
+            <div class="field">
+              <label for="new-student-password">초기 비밀번호</label>
+              <input id="new-student-password" type="password" minlength="6" maxlength="30" required autocomplete="new-password">
+            </div>
+            <p class="account-note">학생 ID는 전체 서비스에서 중복될 수 없습니다. 비밀번호는 6자 이상으로 만들고 학생에게 따로 알려 주세요.</p>
+            <p id="create-student-message" class="form-message"></p>
+            <button id="create-student-button" class="btn" type="submit">학생 계정 만들기</button>
+          </form>
+        </section>
+        <section class="card teacher-panel">
+          <h3>내 학생 <span id="teacher-student-count" class="tag">0명</span></h3>
+          <p class="sub">이 Google 계정으로 만든 학생 계정만 표시됩니다.</p>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>학생 이름</th><th>학생 ID</th><th>계정 상태</th><th>생성일</th></tr></thead>
+              <tbody id="teacher-student-list">
+                <tr><td colspan="4" class="empty-row">학생 계정을 불러오는 중입니다.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="student-detail" class="detail hidden"></div>
+        </section>
+      </div>
+      <div class="card teacher" style="margin-top:16px">
+        <h3>학습 통계</h3>
+        <p class="sub">학생이 문제를 풀면 전체 정답률, 한 번에 맞힌 문제, 다시 맞힌 문제, 반복 오답을 이곳에 연결할 수 있습니다.</p>
+        <div class="stats">
+          <div class="stat">참여 학생<b id="stats-student-count">0명</b></div><div class="stat">학급 정답률<b>-</b></div>
+          <div class="stat">도전 참여<b>-</b></div><div class="stat">복습 필요<b>-</b></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="level3-question-bank.js"></script>
+  <script>
+    let questions = [];
+    let questionLoadError = "";
+    const wrongIds = new Set();
+    const everWrongIds = new Set();
+    const STAGE_SIZE = 20;
+    let active = [], index = 0, score = 0, attempts = 0, answered = false, stageResults = [];
+    const $ = id => document.getElementById(id);
+    function showComingSoon(feature){ alert(`${feature}은 준비 중입니다.`); }
+    function sectionsOff(){ ["login","student-login","student-dashboard","teacher-dashboard","quiz","result"].forEach(id => $(id).classList.add("hidden")); }
+    function showStudent(){ sectionsOff(); $("student-dashboard").classList.remove("hidden"); }
+    function shuffle(list){ return [...list].sort(() => Math.random() - .5); }
+    function parseCsv(text){
+      const rows = [];
+      let row = [], field = "", quoted = false;
+      for(let i=0; i<text.length; i++){
+        const ch = text[i], next = text[i+1];
+        if(quoted){
+          if(ch === '"' && next === '"'){ field += '"'; i++; }
+          else if(ch === '"') quoted = false;
+          else field += ch;
+        } else if(ch === '"') quoted = true;
+        else if(ch === ","){ row.push(field); field = ""; }
+        else if(ch === "\n"){ row.push(field); rows.push(row); row = []; field = ""; }
+        else if(ch !== "\r") field += ch;
+      }
+      if(field || row.length){ row.push(field); rows.push(row); }
+      const headers = rows.shift();
+      return rows.filter(r => r.some(Boolean)).map(r => Object.fromEntries(headers.map((h,i)=>[h, r[i] || ""])));
+    }
+    function safeJson(value, fallback){
+      if(!value) return fallback;
+      try { return JSON.parse(value); } catch { return fallback; }
+    }
+    function escapeHtml(text){
+      return String(text || "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
+    }
+    const underlinePatterns = {
+      "맡다": ["맡았다","맡아","맡고","맡은","맡는다","맡았다"],
+      "차다": ["찼다","찼","차며","차고","차서","차면","차는","차지","차다"],
+      "먹다": ["먹었다","먹었","먹고","먹기도","먹으면","먹을","먹었다","먹다"],
+      "걸다": ["걸었다","걸어","걸고","걸린","걸렸","거셨다","거셨","거는","걸다"],
+      "들다": ["들었다","들었","들어 보이며","들어","들고","들면","드는","든다","들었다"],
+      "쓰다": ["썼다","썼","써서","쓰고","쓰는","쓰지","쓰면","쓸","쓰다"],
+      "잡다": ["잡았다","잡았","잡아","잡고","잡은","잡을","잡으려고","잡으","잡다"],
+      "풀다": ["풀어 줘","풀어","풀고","풀린","풀렸","풀면","풀다"],
+      "열다": ["열었습니다","열었다","열었","열고","열어","열면","열린","열렸","여셨다","여셨","연다","열다"],
+      "맞다": ["맞았다","맞았","맞아","맞고","맞는","맞을","맞은","맞으며","맞으니","맞다"],
+      "놓다": ["내려놓는","내려놓","올려놓","놓았다","놓았","놓으셨다","놓으셨","놓고","놓아","놓으면","놓는","놓을","놓다"],
+      "나다": ["나서 왔어요","나서","나고","나면","나는","났다","났","나서"],
+      "보다": ["보였습니다","보였습","보였","보이는","보였다","보았다","보았","보니까","보니","보면","보며","보고","보는","본다","보다"],
+      "달다": ["달았다","달았","달아","달고","달린","달려","다셨다","다셨","달다"],
+      "타다": ["타셨다","타셨","탔다","타고","타서","타면","타는","타 주셨다","타 주셨","타다"],
+      "치다": ["쳤다","쳤","쳐서","치고","치는","치다"],
+      "고르다": ["고를까","고르고","골라","골랐","고른","고르는","고르다"],
+      "끄다": ["껐다","꺼서","끄고","끄는","끄다"],
+      "오르다": ["올랐다","올랐","올라","오르고","오른","오르는","오르다"],
+      "돌다": ["돌았다","돌고","돌아","도는","돌며","돌다"],
+      "담다": ["담았다","담았","담아","담고","담은","담을","담다"],
+      "밝다": ["밝아졌다","밝았다","밝아","밝은","밝게","밝고","밝다"],
+      "내리다": ["내리는","내렸다","내렸","내려","내리고","내리다"],
+      "살다": ["살아요","살았다","살았","살아","살고","사는","살다"],
+      "세다": ["세게","셌다","셌","세고","세어","세는","세다"],
+      "떨어지다": ["떨어졌다","떨어졌","떨어져","떨어지는","떨어지다"]
+    };
+    const level2Catalog = {
+      "눈": {
+        options:["빛의 자극을 받아 사물을 볼 수 있는 감각 기관.","사물을 알아보는 능력이나 시력.","사물을 보고 판단하는 능력.","무엇을 바라보는 태도나 표정.","대기 중의 수증기가 얼어 땅으로 떨어지는 얼음 결정."],
+        entries:[{headword:"눈",no:"1",pos:"명사",senses:[0,1,2,3]},{headword:"눈",no:"2",pos:"명사",senses:[4]}]
+      },
+      "들다": {
+        options:["손에 가지거나 위쪽으로 올리다.","밖에서 안으로 가거나 오다.","마음에 만족스럽거나 좋게 느껴지다.","시간이나 돈, 힘 따위가 필요하다.","잠이나 버릇 따위가 생기다."],
+        entries:[{headword:"들다",no:"",pos:"동사",senses:[0,1,2,3,4]}]
+      },
+      "걸다": {
+        options:["물체를 떨어지지 않도록 어디에 매달다.","전화가 통하도록 신호를 보내다.","말이나 인사를 먼저 시작하다.","기대나 희망을 두다.","문제 삼아 따지거나 내기를 하다."],
+        entries:[{headword:"걸다",no:"",pos:"동사",senses:[0,1,2,3,4]}]
+      },
+      "보다": {
+        options:["눈으로 대상을 살피다.","공연이나 영화를 감상하다.","시험을 치르다.","일을 맡아 처리하거나 돌보다.","어떤 결과나 상태를 경험하다."],
+        entries:[{headword:"보다",no:"",pos:"동사",senses:[0,1,2,3,4]}]
+      },
+      "먹다": {
+        options:["음식 따위를 입을 통하여 배 속에 들여보내다.","어떤 마음이나 감정을 품다.","운동 경기에서 상대편에게 점수를 내주다.","나이가 들다.","습기나 물 따위를 빨아들이다."],
+        entries:[{headword:"먹다",no:"",pos:"동사",senses:[0,1,2,3,4]}]
+      },
+      "쓰다": {
+        options:["종이나 화면에 글자나 그림을 나타내다.","모자나 안경 따위를 머리나 얼굴에 얹거나 끼다.","어떤 일을 하는 데 도구나 재료, 시간 따위를 이용하다.","맛이 혀에 거슬리게 느껴지다.","다른 사람에게 일정한 일을 시키다."],
+        entries:[{headword:"쓰다",no:"1",pos:"동사",senses:[0]},{headword:"쓰다",no:"2",pos:"동사",senses:[1]},{headword:"쓰다",no:"3",pos:"동사",senses:[2]},{headword:"쓰다",no:"4",pos:"형용사",senses:[3]},{headword:"쓰다",no:"5",pos:"동사",senses:[4]}]
+      },
+      "열다": {
+        options:["닫힌 문이나 뚜껑 따위를 벌리다.","말을 시작하다.","회의나 행사 따위를 시작하다.","새로운 길이나 시대 따위를 시작하다.","가게나 기관이 일을 시작하다."],
+        entries:[{headword:"열다",no:"",pos:"동사",senses:[0,1,2,3,4]}]
+      },
+      "맞다": {
+        options:["문제에 대한 답이 틀리지 않다.","오는 사람을 받아들이다.","비나 바람, 햇빛 따위를 몸에 받다.","크기나 조건 따위가 서로 어울리다.","매나 공 따위에 부딪힘을 당하다."],
+        entries:[{headword:"맞다",no:"1",pos:"동사",senses:[0]},{headword:"맞다",no:"2",pos:"동사",senses:[1]},{headword:"맞다",no:"3",pos:"동사",senses:[2]},{headword:"맞다",no:"4",pos:"동사",senses:[3]},{headword:"맞다",no:"5",pos:"동사",senses:[4]}]
+      },
+      "맡다": {
+        options:["어떤 일에 대한 책임을 지고 담당하다.","어떤 물건을 받아 보관하다.","주문이나 부탁 따위를 받다.","코로 냄새를 느끼다.","자리나 물건 따위를 차지해 두다."],
+        entries:[{headword:"맡다",no:"1",pos:"동사",senses:[0,1,2,4]},{headword:"맡다",no:"2",pos:"동사",senses:[3]}]
+      },
+      "놓다": {
+        options:["손으로 들거나 잡던 것을 어떤 곳에 두다.","걱정이나 긴장을 풀어 편안하게 하다.","덫이나 그물 따위를 설치하다.","불이나 다리 따위를 이어지게 만들다.","앞말이 뜻하는 행동을 끝내고 그 결과가 계속 유지되게 하다."],
+        entries:[{headword:"놓다",no:"1",pos:"동사",senses:[0,1,2,3]},{headword:"놓다",no:"2",pos:"보조 동사",senses:[4]}]
+      }
+    };
+    const level2Specs = [
+      ["L201","눈","채운이는 배의 껍질과 향을 꼼꼼히 살핀 뒤 가장 싱싱한 것을 골랐다. 과일 가게 아저씨는 채운이가 <u>과일 보는 눈</u>이 있다고 칭찬했다.",2],
+      ["L202","눈","연지는 새로 태어난 병아리를 키우는 경태가 부러웠다. 연지는 경태를 <u>부러운 눈</u>으로 바라보며 병아리의 이름을 물었다.",3],
+      ["L203","들다","수아는 여러 가방을 메어 보았지만 색이나 크기가 아쉬웠다. 마지막으로 고른 파란 가방은 수아의 <u>마음에 들었다</u>.",2],
+      ["L204","들다","우리 모둠은 큰 작품을 만들기 위해 종이를 자르고 붙이는 일을 여러 번 되풀이했다. 완성하는 데 시간과 힘이 많이 <u>들었다</u>.",3],
+      ["L205","걸다","우리 반 선수들은 방과 후마다 이어달리기를 연습했다. 친구들은 이번 운동회 우승에 큰 기대를 <u>걸었다</u>.",3],
+      ["L206","걸다","전학 온 민지는 쉬는 시간에도 혼자 창밖을 보고 있었다. 나는 민지에게 다가가 먼저 말을 <u>걸었다</u>.",2],
+      ["L207","보다","부모님께서 잠시 외출하신 동안 나는 동생의 저녁을 챙기고 숙제를 도와주었다. 두 시간 동안 동생을 <u>보았다</u>.",3],
+      ["L208","보다","우리 모둠은 여러 번 실패했지만 방법을 바꾸어 계속 실험했다. 마침내 예상했던 결과를 <u>보았다</u>.",4],
+      ["L209","먹다","경기 종료를 얼마 남기지 않고 우리 팀 수비수가 공을 놓쳤다. 결국 상대 팀에게 한 골을 <u>먹었다</u>.",2],
+      ["L210","먹다","동생은 생일 케이크의 촛불을 끄며 작년보다 키가 더 크기를 빌었다. 오늘로 동생은 한 살을 더 <u>먹었다</u>.",3],
+      ["L211","쓰다","발표 자료를 만들기 위해 책과 인터넷 자료를 꼼꼼히 조사했다. 자료를 정리하는 데 사흘을 <u>썼다</u>.",2],
+      ["L212","쓰다","동생은 감기약을 한 모금 마시더니 얼굴을 잔뜩 찌푸렸다. 그 약은 무척 <u>썼다</u>.",3],
+      ["L213","열다","운동장에는 무대와 체험 공간이 마련되었고 가족들도 학교에 모였다. 교장 선생님께서 학교 축제를 <u>열었다</u>.",2],
+      ["L214","열다","그 과학자는 아무도 시도하지 않았던 방법으로 바다를 연구했다. 그의 도전은 해양 연구의 새로운 길을 <u>열었다</u>.",3],
+      ["L215","맞다","멀리 사시던 할머니께서 기차역에 도착하신다는 연락이 왔다. 우리 가족은 역 앞에서 할머니를 <u>맞았다</u>.",1],
+      ["L216","맞다","민준이는 등산화 여러 켤레를 신어 보고 발을 움직여 보았다. 마지막 신발이 발에 가장 잘 <u>맞았다</u>.",3],
+      ["L217","맡다","모둠 친구들은 자료 조사, 발표, 그림 그리기로 역할을 나누었다. 나는 친구들의 의견을 모아 발표하는 일을 <u>맡았다</u>.",0],
+      ["L218","맡다","눈을 가린 채 접시에 놓인 과일을 냄새로 알아맞히는 놀이를 했다. 나는 코를 가까이 대고 향을 <u>맡았다</u>.",3],
+      ["L219","놓다","아침에 늦잠을 자서 준비물을 챙기지 못할 뻔했다. 내일부터는 잊지 않도록 알림을 <u>맞춰 놓았다</u>.",4],
+      ["L220","놓다","연구원들은 산짐승이 어느 길로 다니는지 조사하려고 발자국을 살폈다. 이동 길목에는 흔적을 확인할 그물을 <u>놓았다</u>.",2]
+    ];
+    function buildLevel2Questions(){
+      return level2Specs.map(([id,word,text,answer]) => ({
+        id, level:"level2", word, text,
+        options:[...level2Catalog[word].options],
+        answer,
+        entries:level2Catalog[word].entries.map(entry => ({...entry, senses:[...entry.senses]}))
+      }));
+    }
+    const level3Specs = [
+      ["L301","금일","6시에 헐레벌떡 가게로 갔다. 하지만 입구에는 이미 ‘<u>금일</u> 영업은 종료되었습니다.’라는 표지판이 붙어 있었다. 아쉽지만 발길을 돌릴 수밖에 없었다.",["오늘","금요일","오전","어제","이번 주"],0],
+      ["L302","익일","택배 안내문에는 ‘주문하신 물건은 <u>익일</u> 발송됩니다.’라고 쓰여 있었다. 오늘 주문했으니 물건은 내일 가게에서 출발할 것이다.",["내일","오늘 밤","다음 주","어제","주말"],0],
+      ["L303","불현듯","숙제를 하다가 <u>불현듯</u> 준비물을 두고 왔다는 생각이 났다. 전혀 생각하지 못하고 있다가 갑자기 떠오른 것이다.",["갑자기","천천히","자세히","미리","끝내"],0],
+      ["L304","이내","검은 구름이 몰려오더니 빗방울이 떨어졌다. 비는 <u>이내</u> 굵어져 운동장이 금세 물로 젖었다.",["곧","오랫동안","가끔","미리","다시"],0],
+      ["L305","고요하다","밤이 깊자 자동차 소리도 사람들의 말소리도 들리지 않았다. 마을은 매우 <u>고요했다</u>.",["조용했다","복잡했다","밝았다","즐거웠다","따뜻했다"],0],
+      ["L306","흐뭇하다","동생이 혼자 신발 끈을 묶는 모습을 보니 대견했다. 나는 동생을 바라보며 <u>흐뭇한</u> 미소를 지었다.",["기쁘고 만족스러운","걱정되고 불안한","몹시 화가 난","부끄러워 숨고 싶은","피곤하고 졸린"],0],
+      ["L307","머뭇거리다","민지는 발표대로 나갔지만 바로 말을 시작하지 못했다. 잠시 <u>머뭇거리다가</u> 용기를 내어 첫 문장을 읽었다.",["망설이며 바로 행동하지 못하다","빠르게 뛰어가다","큰 소리로 웃다","차례를 잊고 돌아가다","계속 같은 말을 하다"],0],
+      ["L308","수월하다","처음에는 혼자 책상을 옮기기 힘들었다. 친구가 한쪽을 함께 들자 훨씬 <u>수월하게</u> 옮길 수 있었다.",["하기 쉽고 편하게","매우 느리고 답답하게","조심스럽고 비밀스럽게","시끄럽고 어지럽게","정확하지 않게"],0],
+      ["L309","어림짐작","상자를 열어 보지 않고 무게만 들어 보았다. 나는 <u>어림짐작</u>으로 공책이 열 권쯤 들어 있을 것이라고 말했다.",["대강 헤아려 짐작함","직접 세어 확인함","다른 사람에게 물어봄","정확하게 재어 기록함","처음부터 다시 조사함"],0],
+      ["L310","단념하다","비가 계속 내려 운동장에서 축구를 할 수 없었다. 우리는 야외 경기를 <u>단념하고</u> 교실에서 보드게임을 하기로 했다.",["하려던 일을 포기하다","계속 연습하다","다른 사람에게 맡기다","몰래 시작하다","서둘러 끝내다"],0],
+      ["L311","분주하다","운동회 아침, 선생님은 줄을 정리하고 학생들은 준비물을 나르느라 바빴다. 운동장은 무척 <u>분주했다</u>.",["여러 사람이 바쁘게 움직였다","아무도 없이 조용했다","정리가 잘되어 깨끗했다","날씨가 몹시 추웠다","사람들이 지쳐 잠들었다"],0],
+      ["L312","정성껏","지우는 아픈 친구를 위해 편지를 쓰고 작은 그림도 그렸다. 한 글자 한 글자 <u>정성껏</u> 쓴 마음이 편지에 담겼다.",["온 마음과 힘을 다하여","아무 생각 없이 빠르게","다른 사람 몰래","정해진 순서와 반대로","여러 번 실수하며"],0],
+      ["L313","난감하다","우산이 하나뿐인데 비를 맞은 친구가 두 명이나 찾아왔다. 누구에게 먼저 빌려줘야 할지 몰라 <u>난감했다</u>.",["어떻게 해야 할지 몰라 곤란했다","기대했던 일이 이루어져 기뻤다","화가 나서 소리를 질렀다","무서워서 도망가고 싶었다","피곤해서 움직일 수 없었다"],0],
+      ["L314","유심히","과학 시간에 나뭇잎의 앞면과 뒷면이 어떻게 다른지 살펴보았다. 작은 잎맥까지 놓치지 않으려고 <u>유심히</u> 관찰했다.",["주의를 기울여 자세히","잠깐 동안 빠르게","멀리 떨어져서","재미가 없다는 듯이","눈을 감은 채"],0],
+      ["L315","선뜻","친구들은 무거운 상자를 보고도 쉽게 나서지 못했다. 그때 준호가 <u>선뜻</u> 앞으로 나와 자신이 들겠다고 말했다.",["망설이지 않고 기꺼이","마지못해 천천히","몰래 숨어서","불평을 계속하며","다른 사람을 따라서"],0],
+      ["L316","비로소","여러 번 지도를 확인하고 길을 되돌아간 끝에 목적지를 찾았다. 표지판을 발견하고 나서야 <u>비로소</u> 제대로 도착했음을 알았다.",["어떤 과정이 지난 뒤에야","시작하기 전부터","아무런 까닭 없이","조금 전과 똑같이","앞으로도 계속"],0],
+      ["L317","고스란히","가방이 열려 있었지만 안에 있던 공책과 필통은 하나도 없어지지 않았다. 물건들이 <u>고스란히</u> 그대로 남아 있었다.",["조금도 변하거나 없어지지 않고 그대로","여기저기 흩어져서","절반만 남아서","새것으로 바뀌어서","보기 좋게 정리되어"],0],
+      ["L318","아슬아슬하다","버스 문이 닫히기 바로 전에 정류장에 도착했다. 한 걸음만 늦었어도 버스를 놓칠 뻔한 <u>아슬아슬한</u> 순간이었다.",["위험하거나 모자랄 듯하여 마음을 졸이는","아주 편안하고 느긋한","결과가 이미 정해진","무척 지루하고 긴","기대보다 훨씬 쉬운"],0],
+      ["L319","뿌듯하다","우리 모둠이 만든 안내판을 보고 길을 찾았다는 사람이 있었다. 열심히 만든 것이 도움이 되었다니 마음이 <u>뿌듯했다</u>.",["보람을 느껴 자랑스럽고 기뻤다","잘못한 일이 떠올라 부끄러웠다","결과가 걱정되어 불안했다","뜻대로 되지 않아 속상했다","놀라서 아무 말도 못 했다"],0],
+      ["L320","서먹하다","새 학기 첫날이라 짝과 무슨 말을 해야 할지 몰랐다. 서로 이름만 묻고 조용히 앉아 있으니 조금 <u>서먹했다</u>.",["친하지 않아 어색했다","오래 만나 매우 반가웠다","의견이 달라 화가 났다","장난을 쳐서 즐거웠다","할 일이 많아 바빴다"],0]
+    ];
+    function buildLevel3Questions(){
+      const specs = Array.isArray(window.LEVEL3_WORD_SPECS) ? window.LEVEL3_WORD_SPECS : [];
+      return specs.flatMap((spec, wordIndex) =>
+        spec.contexts.map((text, contextIndex) => {
+          const correct = spec.options[0];
+          const shuffledOptions = shuffle(spec.options);
+          return {
+            id:`L3${String(wordIndex + 1).padStart(3,"0")}-${contextIndex + 1}`,
+            level:"level3",
+            word:spec.word,
+            text,
+            options:shuffledOptions,
+            answer:shuffledOptions.indexOf(correct),
+            entries:[{headword:spec.word,no:"",pos:"뜻",senses:shuffledOptions.map((_,index)=>index)}]
+          };
+        })
+      );
+    }
+    function underlineTarget(passage, word){
+      const clean = escapeHtml(passage);
+      const patterns = underlinePatterns[word] || [];
+      const stem = word.endsWith("다") ? word.slice(0, -1) : "";
+      const fallback = stem ? [`${stem}[가-힣]*`, word] : [word];
+      const candidates = [...patterns.map(pattern => pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), ...fallback]
+        .filter(Boolean)
+        .sort((a,b)=>b.length-a.length);
+      for(const candidate of candidates){
+        const match = clean.match(new RegExp(candidate));
+        if(match && match.index >= 0) {
+          const start = match.index, end = start + match[0].length;
+          return `${clean.slice(0,start)}<u>${clean.slice(start,end)}</u>${clean.slice(end)}`;
+        }
+      }
+      return clean;
+    }
+    function entryFromJson(row, options){
+      if(row.target_word === "놓다"){
+        const auxiliary = "앞말이 뜻하는 행동을 끝내고 그 결과가 계속 유지되게 하다.";
+        const auxiliaryIndex = options.indexOf(auxiliary);
+        const mainIndexes = options.map((_, index) => index).filter(index => index !== auxiliaryIndex);
+        const result = [];
+        if(mainIndexes.length) result.push({ headword:"놓다", no:"1", pos:"동사", senses:mainIndexes });
+        if(auxiliaryIndex >= 0) result.push({ headword:"놓다", no:"2", pos:"보조 동사", senses:[auxiliaryIndex] });
+        return result;
+      }
+      const rawEntries = safeJson(row.dictionary_entries_json, []);
+      const entries = Array.isArray(rawEntries) ? rawEntries : (rawEntries && typeof rawEntries === "object" ? [rawEntries] : []);
+      if(!entries.length) return [];
+      return entries.map(entry => {
+        const headword = entry.headword || row.target_word;
+        const match = headword.match(/^(.*?)([0-9]+)$/);
+        const senses = (entry.senses || []).map(sense => options.indexOf(sense)).filter(index => index >= 0);
+        return { headword: match ? match[1] : headword, no: match ? match[2] : "", pos:entry.pos || "뜻", senses };
+      }).filter(entry => entry.senses.length);
+    }
+    function buildFallbackEntries(word, options){
+      return [{ headword:word, no:"", senses:options.map((_,i)=>i) }];
+    }
+    async function loadQuestionBank(){
+      try {
+        const response = await fetch("question-bank-500.csv", { cache:"no-store" });
+        if(!response.ok) throw new Error(`CSV ${response.status}`);
+        const rows = parseCsv(await response.text());
+        const usableRows = rows.filter(row => {
+          const options = safeJson(row.dictionary_options_json, []);
+          return options.length > 0 && options.includes(row.answer_definition);
+        });
+        questions = usableRows.map(row => {
+          let parsedOptions = safeJson(row.dictionary_options_json, []);
+          let answerDefinition = row.answer_definition;
+          if(row.target_word === "놓다"){
+            const oldAuxiliary = "계속해서 어떤 상태로 두다.";
+            const newAuxiliary = "앞말이 뜻하는 행동을 끝내고 그 결과가 계속 유지되게 하다.";
+            parsedOptions = parsedOptions.map(definition => definition === oldAuxiliary ? newAuxiliary : definition);
+            if(answerDefinition === oldAuxiliary) answerDefinition = newAuxiliary;
+          }
+          const options = [...new Set(parsedOptions)];
+          const answer = Math.max(0, options.indexOf(answerDefinition));
+          const entries = entryFromJson(row, options);
+          return {
+            id: row.id,
+            level: row.level || "level1",
+            word: row.target_word,
+            text: underlineTarget(row.passage, row.target_word),
+            options,
+            answer,
+            entries: entries.length ? entries : buildFallbackEntries(row.target_word, options)
+          };
+        });
+        questions.push(...buildLevel2Questions());
+        questions.push(...buildLevel3Questions());
+        window.appQuestions = questions;
+        $("wrong-count").textContent = `틀린 문제 ${wrongIds.size}개`;
+        const note = document.querySelector(".sample-note");
+        if(note) note.textContent = `1단계 ${usableRows.length}문항, 2단계 20문항, 3단계 ${questions.filter(q => q.level === "level3").length}문항을 불러왔습니다.`;
+      } catch(error) {
+        questionLoadError = error.message || String(error);
+        const note = document.querySelector(".sample-note");
+        if(note) note.textContent = `문제은행을 불러오지 못했습니다: ${questionLoadError}`;
+      }
+    }
+    function fillStage(pool, size=STAGE_SIZE, uniqueKey = question => question.id){
+      if(!pool.length) return [];
+      const unique = [...new Map(pool.map(question => [uniqueKey(question), question])).values()];
+      return shuffle(unique).slice(0, Math.min(size, unique.length));
+    }
+    function challengeStage(levels, uniqueKey = question => question.id){
+      const areaPool = [...new Map(
+        questions.filter(q => levels.includes(q.level)).map(question => [uniqueKey(question), question])
+      ).values()];
+      const wrongPool = areaPool.filter(q => everWrongIds.has(q.id));
+      const selectedWrong = fillStage(wrongPool, STAGE_SIZE / 2, uniqueKey);
+      const selectedKeys = new Set(selectedWrong.map(question => uniqueKey(question)));
+      const remainingPool = areaPool.filter(question => !selectedKeys.has(uniqueKey(question)));
+      const selectedRegular = fillStage(remainingPool, STAGE_SIZE - selectedWrong.length, uniqueKey);
+      return shuffle([...selectedWrong, ...selectedRegular]);
+    }
+    function updateLiveStats(){
+      const rate = attempts ? Math.round(score / attempts * 100) : 0;
+      $("live-rate").textContent = `현재 정답률 ${rate}%`;
+      $("live-correct").textContent = `맞은 문제 ${score}`;
+      $("live-wrong").textContent = `틀린 문제 ${attempts - score}`;
+    }
+    function startQuiz(mode){
+      if(!questions.length){
+        alert(questionLoadError ? `문제은행을 불러오지 못했습니다: ${questionLoadError}` : "문제은행을 아직 불러오는 중입니다.");
+        return;
+      }
+      const isChallenge = mode === "dictionaryChallenge" || mode === "inferenceChallenge";
+      const pool = mode === "review" ? questions.filter(q => wrongIds.has(q.id)) : questions.filter(q => q.level === mode);
+      if(!isChallenge && !pool.length){
+        alert(mode === "level2" || mode === "level3" ? "현재 해당 단계 문항을 준비하고 있습니다." : "아직 복습할 문제가 없습니다.");
+        return;
+      }
+      active = mode === "dictionaryChallenge"
+        ? challengeStage(["level1","level2"])
+        : mode === "inferenceChallenge"
+          ? challengeStage(["level3"], question => question.word)
+          : mode === "level3"
+            ? fillStage(pool, STAGE_SIZE, question => question.word)
+            : fillStage(pool);
+      index = 0; score = 0; attempts = 0; stageResults = []; sectionsOff(); $("quiz").classList.remove("hidden");
+      $("quiz-label").textContent = {
+        level1:"연습 1단계",
+        level2:"연습 2단계",
+        level3:"연습 3단계",
+        review:"오답 복습",
+        dictionaryChallenge:"1·2단계 오늘의 도전",
+        inferenceChallenge:"3단계 오늘의 도전"
+      }[mode];
+      updateLiveStats();
+      renderQuestion();
+    }
+    function renderQuestion(){
+      answered = false; $("feedback").textContent = ""; $("feedback").className = "feedback"; $("next").classList.add("hidden");
+      const q = active[index], multi = q.level === "level2" || q.level === "level3", inference = q.level === "level3";
+      $("progress-text").textContent = `${index + 1} / ${active.length}`; $("progress-bar").style.width = `${(index + 1) / active.length * 100}%`;
+      $("question").className = `question ${multi ? "multi" : "single"}`;
+      const dictionary = q.entries.map(entry => `<section class="entry"><div class="headword">${entry.headword || q.word}${entry.no ? `<sup>${entry.no}</sup>` : ""}</div>${entry.senses.map((optionIndex, senseIndex)=>`<button class="choice" data-option="${optionIndex}" onclick="choose(${optionIndex})"><span class="sense-no">${senseIndex+1}.</span>${inference ? "" : `<span class="pos">${entry.pos || "뜻"}</span>`}${q.options[optionIndex]}</button>`).join("")}</section>`).join("");
+      const guide = inference ? "" : `<div class="dictionary-guide"><span class="guide-chip"><b>¹ ²</b> 동형이의어 항목</span><span class="guide-chip"><b>1. 2. 3.</b> 한 낱말의 여러 뜻</span></div>`;
+      $("question").innerHTML = `<div class="passage"><small>${multi ? "앞뒤 문맥을 함께 읽어 보세요" : "문장을 읽어 보세요"}</small><div class="passage-text">${q.text}</div></div>
+        <div class="choices"><h3>${inference ? "문맥을 바탕으로 낱말의 뜻을 추측해 보세요." : "사전에서 문맥에 알맞은 뜻을 골라 보세요."}</h3><div class="dictionary"><div class="dictionary-head">${inference ? "뜻 추측하기" : "국어사전 검색 결과"} · ${q.word}</div>${guide}${dictionary}</div></div>`;
+    }
+    function choose(choice){
+      if(answered) return; answered = true;
+      const q=active[index], buttons=document.querySelectorAll(".choice");
+      const correctButton = document.querySelector(`.choice[data-option="${q.answer}"]`);
+      correctButton.classList.add("correct");
+      attempts++;
+      stageResults.push({ word:q.word, text:q.text.replace(/<[^>]+>/g, ""), correct:choice === q.answer, definition:q.options[q.answer] });
+      if(choice === q.answer){ score++; wrongIds.delete(q.id); $("feedback").textContent="정답이에요. 문맥에 알맞은 뜻을 잘 찾았어요!"; $("feedback").classList.add("good"); }
+      else { document.querySelector(`.choice[data-option="${choice}"]`).classList.add("wrong"); wrongIds.add(q.id); everWrongIds.add(q.id); $("feedback").textContent="한 번 더 뜻을 살펴봐요. 초록색 뜻이 알맞은 답이에요."; $("feedback").classList.add("bad"); }
+      updateLiveStats();
+      $("next").textContent = index === active.length-1 ? "결과 보기" : "다음 문제"; $("next").classList.remove("hidden");
+      $("wrong-count").textContent=`틀린 문제 ${wrongIds.size}개`;
+    }
+    function resultItems(correct){
+      const rows = stageResults.filter(result => result.correct === correct);
+      return rows.length ? rows.map(result => `<li><b>${result.word}</b> · ${result.text}<br><span class="sub">정답: ${result.definition}</span></li>`).join("") : "<li>해당하는 문제가 없어요.</li>";
+    }
+    function nextQuestion(){ if(++index < active.length) renderQuestion(); else { sectionsOff(); $("result").classList.remove("hidden"); $("result-copy").textContent=`${active.length}문제 가운데 ${score}문제를 맞혔어요. 정답률은 ${Math.round(score/active.length*100)}%예요.`; $("correct-results").innerHTML=resultItems(true); $("wrong-results").innerHTML=resultItems(false); } }
+    loadQuestionBank();
+  </script>
+  <script type="module" src="firebase-auth.js?v=temp-firestore-login-20260608-2"></script>
+</body>
+</html>
