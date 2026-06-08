@@ -6,6 +6,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isGoogleTeacherSelf(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && request.auth.token.firebase.sign_in_provider == "google.com";
+    }
+
     function myProfile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
@@ -15,33 +21,61 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
+      allow create: if isGoogleTeacherSelf(userId)
+        && request.resource.data.role == "teacher"
+        && request.resource.data.email == request.auth.token.email;
       allow read: if signedIn() && (
         request.auth.uid == userId ||
         (isTeacher() && resource.data.teacherId == request.auth.uid)
       );
-      allow write: if false;
+      allow update: if isGoogleTeacherSelf(userId)
+        && resource.data.role == "teacher"
+        && request.resource.data.role == "teacher";
+      allow delete: if false;
     }
 
     match /teachers/{teacherId} {
       allow read: if signedIn() && request.auth.uid == teacherId;
       allow write: if false;
 
-      match /students/{studentUid} {
-        allow read: if signedIn() && (
-          request.auth.uid == teacherId ||
-          request.auth.uid == studentUid
-        );
-        allow write: if false;
+      match /students/{studentId} {
+        allow read: if signedIn() && request.auth.uid == teacherId;
+        allow create: if signedIn()
+          && request.auth.uid == teacherId
+          && isTeacher()
+          && request.resource.data.teacherId == teacherId
+          && request.resource.data.role == "student";
+        allow update: if signedIn()
+          && request.auth.uid == teacherId
+          && isTeacher()
+          && resource.data.teacherId == teacherId
+          && request.resource.data.teacherId == teacherId;
+        allow delete: if false;
       }
+    }
+
+    // Temporary classroom mode.
+    // Students are not Firebase Auth users yet. They log in by reading this
+    // document and comparing a browser-generated password hash. Replace this
+    // with Cloud Functions + Firebase Auth before long-term use.
+    match /studentLogins/{studentId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isTeacher()
+        && request.resource.data.teacherId == request.auth.uid
+        && request.resource.data.role == "student";
+      allow update: if isTeacher()
+        && resource.data.teacherId == request.auth.uid
+        && request.resource.data.teacherId == request.auth.uid;
+      allow delete: if false;
     }
 
     match /attempts/{attemptId} {
       allow create: if signedIn()
-        && request.resource.data.studentUid == request.auth.uid
-        && request.resource.data.teacherId == myProfile().data.teacherId;
+        && request.resource.data.teacherId == request.auth.uid;
       allow read: if signedIn() && (
-        resource.data.studentUid == request.auth.uid ||
-        (isTeacher() && resource.data.teacherId == request.auth.uid)
+        resource.data.teacherId == request.auth.uid ||
+        resource.data.studentUid == request.auth.uid
       );
       allow update, delete: if false;
     }
