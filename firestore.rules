@@ -20,6 +20,20 @@ service cloud.firestore {
       return signedIn() && myProfile().data.role == "teacher";
     }
 
+    function isAnonymousStudent() {
+      return signedIn()
+        && request.auth.token.firebase.sign_in_provider == "anonymous";
+    }
+
+    function myStudentSession() {
+      return get(/databases/$(database)/documents/studentSessions/$(request.auth.uid));
+    }
+
+    function isStudentOf(teacherId) {
+      return isAnonymousStudent()
+        && myStudentSession().data.teacherId == teacherId;
+    }
+
     match /users/{userId} {
       allow create: if isGoogleTeacherSelf(userId)
         && request.resource.data.role == "teacher";
@@ -51,6 +65,41 @@ service cloud.firestore {
           && request.resource.data.teacherId == teacherId;
         allow delete: if false;
       }
+
+      match /rankingAttempts/{attemptId} {
+        allow read: if signedIn() && (
+          request.auth.uid == teacherId ||
+          isStudentOf(teacherId)
+        );
+        allow create: if isStudentOf(teacherId)
+          && request.resource.data.teacherId == teacherId
+          && request.resource.data.studentUid == request.auth.uid
+          && request.resource.data.studentId == myStudentSession().data.studentId
+          && request.resource.data.challengeType in ["dictionary", "inference"]
+          && request.resource.data.correct is int
+          && request.resource.data.total == 20
+          && request.resource.data.rate is int;
+        allow update, delete: if false;
+      }
+
+      match /learningAttempts/{attemptId} {
+        allow read: if signedIn() && (
+          request.auth.uid == teacherId ||
+          resource.data.studentUid == request.auth.uid
+        );
+        allow create: if isStudentOf(teacherId)
+          && request.resource.data.teacherId == teacherId
+          && request.resource.data.studentUid == request.auth.uid
+          && request.resource.data.studentId == myStudentSession().data.studentId
+          && request.resource.data.total is int
+          && request.resource.data.total > 0
+          && request.resource.data.total <= 20
+          && request.resource.data.correct is int
+          && request.resource.data.rate is int
+          && request.resource.data.results is list
+          && request.resource.data.results.size() == request.resource.data.total;
+        allow update, delete: if false;
+      }
     }
 
     // Temporary classroom mode.
@@ -69,14 +118,20 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /attempts/{attemptId} {
-      allow create: if signedIn()
-        && request.resource.data.teacherId == request.auth.uid;
+    match /studentSessions/{studentUid} {
       allow read: if signedIn() && (
-        resource.data.teacherId == request.auth.uid ||
-        resource.data.studentUid == request.auth.uid
+        request.auth.uid == studentUid ||
+        (isTeacher() && resource.data.teacherId == request.auth.uid)
       );
-      allow update, delete: if false;
+      allow create, update: if isAnonymousStudent()
+        && request.auth.uid == studentUid
+        && request.resource.data.role == "student"
+        && request.resource.data.studentId is string
+        && request.resource.data.teacherId ==
+          get(/databases/$(database)/documents/studentLogins/$(request.resource.data.studentId)).data.teacherId
+        && request.resource.data.displayName ==
+          get(/databases/$(database)/documents/studentLogins/$(request.resource.data.studentId)).data.displayName;
+      allow delete: if false;
     }
   }
 }
