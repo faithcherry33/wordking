@@ -75,6 +75,15 @@
     .rank-row { display:flex; gap:10px; flex-wrap:wrap; }
     .medal { flex:1; min-width:170px; padding:13px; border-radius:15px; background:#f7fbfd; font-size:14px; }
     .medal b { display:block; margin-bottom:4px; }
+    .ranking-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; }
+    .ranking-board { padding:20px; }
+    .ranking-board h3 { margin-bottom:5px; }
+    .ranking-columns { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+    .ranking-period { padding:14px; border-radius:14px; background:#f7fbfd; }
+    .ranking-period h4 { margin:0 0 10px; color:var(--navy); }
+    .ranking-list { display:grid; gap:8px; }
+    .ranking-item { display:flex; justify-content:space-between; gap:10px; padding:9px 10px; border-radius:11px; background:white; border:1px solid var(--line); font-size:14px; }
+    .ranking-empty { color:var(--muted); font-size:13px; line-height:1.5; }
     .quiz-shell { padding:24px; }
     .quiz-head { margin-bottom:18px; }
     .quiz-stage { margin:0 0 8px 92px; color:var(--muted); font-size:14px; font-weight:800; }
@@ -139,6 +148,7 @@
       .login { padding:26px 20px; margin-top:22px; }
       .result-groups { grid-template-columns:1fr; }
       .teacher-grid { grid-template-columns:1fr; }
+      .ranking-grid, .ranking-columns { grid-template-columns:1fr; }
     }
   </style>
 </head>
@@ -195,9 +205,34 @@
         <article class="card mode wide"><div class="mode-icon">◆</div><h3>3단계 오늘의 도전</h3><p>문맥 추론 20문제를 풀어요. 절반은 3단계에서 틀렸던 문제로 구성돼요.</p><button class="btn small" onclick="startQuiz('inferenceChallenge')">도전하기</button></article>
         <article class="card rank">
           <h3>오늘의 단어왕 · 이번 주 단어왕</h3>
-          <p class="sub">학생별 기록 저장 기능을 연결한 뒤 사용할 수 있습니다.</p>
-          <button class="btn white small" onclick="showComingSoon('랭킹 시스템')">랭킹 보기</button>
+          <p class="sub">선생님이 만든 학생끼리 오늘과 이번 주 도전 결과를 비교해요.</p>
+          <button class="btn white small" onclick="openRankings()">랭킹 보기</button>
         </article>
+      </div>
+    </section>
+
+    <section id="rankings" class="hidden">
+      <div class="dash-head">
+        <div><h2>우리 반 단어왕</h2><p class="sub">각 도전에서 받은 최고 정답률을 기준으로 표시합니다.</p></div>
+        <button class="btn white small" onclick="backFromRankings()">돌아가기</button>
+      </div>
+      <div class="ranking-grid">
+        <section class="card ranking-board">
+          <h3>1·2단계 사전 단어왕</h3>
+          <p class="sub">사전에서 문맥에 알맞은 뜻 찾기</p>
+          <div class="ranking-columns">
+            <div class="ranking-period"><h4>오늘의 단어왕</h4><div id="dictionary-daily-ranking" class="ranking-list"><p class="ranking-empty">불러오는 중입니다.</p></div></div>
+            <div class="ranking-period"><h4>이번 주 단어왕</h4><div id="dictionary-weekly-ranking" class="ranking-list"><p class="ranking-empty">불러오는 중입니다.</p></div></div>
+          </div>
+        </section>
+        <section class="card ranking-board">
+          <h3>3단계 문맥 추론 단어왕</h3>
+          <p class="sub">낯선 낱말의 뜻을 문맥으로 추측하기</p>
+          <div class="ranking-columns">
+            <div class="ranking-period"><h4>오늘의 단어왕</h4><div id="inference-daily-ranking" class="ranking-list"><p class="ranking-empty">불러오는 중입니다.</p></div></div>
+            <div class="ranking-period"><h4>이번 주 단어왕</h4><div id="inference-weekly-ranking" class="ranking-list"><p class="ranking-empty">불러오는 중입니다.</p></div></div>
+          </div>
+        </section>
       </div>
     </section>
 
@@ -235,7 +270,10 @@
     <section id="teacher-dashboard" class="hidden">
       <div class="dash-head">
         <div><h2>학생 계정 관리</h2><p class="sub"><span id="teacher-name">선생님</span>이 만든 학생만 이 학급에 연결됩니다.</p></div>
-        <button class="btn white small" onclick="appLogout()">로그아웃</button>
+        <div class="login-actions" style="margin:0">
+          <button class="btn white small" onclick="openRankings()">랭킹 보기</button>
+          <button class="btn white small" onclick="appLogout()">로그아웃</button>
+        </div>
       </div>
       <div class="teacher-grid">
         <section class="card teacher-panel">
@@ -264,7 +302,7 @@
           <p class="sub">이 Google 계정으로 만든 학생 계정만 표시됩니다.</p>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>학생 이름</th><th>학생 ID</th><th>계정 상태</th><th>생성일</th></tr></thead>
+              <thead><tr><th>학생</th><th>전체 정답률</th><th>한 번에 맞힘</th><th>고쳐 맞힘</th><th>반복 오답</th></tr></thead>
               <tbody id="teacher-student-list">
                 <tr><td colspan="4" class="empty-row">학생 계정을 불러오는 중입니다.</td></tr>
               </tbody>
@@ -277,8 +315,8 @@
         <h3>학습 통계</h3>
         <p class="sub">학생이 문제를 풀면 전체 정답률, 한 번에 맞힌 문제, 다시 맞힌 문제, 반복 오답을 이곳에 연결할 수 있습니다.</p>
         <div class="stats">
-          <div class="stat">참여 학생<b id="stats-student-count">0명</b></div><div class="stat">학급 정답률<b>-</b></div>
-          <div class="stat">도전 참여<b>-</b></div><div class="stat">복습 필요<b>-</b></div>
+          <div class="stat">참여 학생<b id="stats-student-count">0명</b></div><div class="stat">학급 정답률<b id="stats-class-rate">-</b></div>
+          <div class="stat">도전 참여<b id="stats-challenge-count">0명</b></div><div class="stat">복습 필요<b id="stats-review-count">0명</b></div>
         </div>
       </div>
     </section>
@@ -290,10 +328,10 @@
     const wrongIds = new Set();
     const everWrongIds = new Set();
     const STAGE_SIZE = 20;
-    let active = [], index = 0, score = 0, attempts = 0, answered = false, stageResults = [];
+    let active = [], index = 0, score = 0, attempts = 0, answered = false, stageResults = [], currentQuizMode = "";
     const $ = id => document.getElementById(id);
     function showComingSoon(feature){ alert(`${feature}은 준비 중입니다.`); }
-    function sectionsOff(){ ["login","student-login","student-dashboard","teacher-dashboard","quiz","result"].forEach(id => $(id).classList.add("hidden")); }
+    function sectionsOff(){ ["login","student-login","student-dashboard","teacher-dashboard","rankings","quiz","result"].forEach(id => $(id).classList.add("hidden")); }
     function showStudent(){ sectionsOff(); $("student-dashboard").classList.remove("hidden"); }
     function shuffle(list){ return [...list].sort(() => Math.random() - .5); }
     function parseCsv(text){
@@ -577,6 +615,7 @@
         alert(mode === "level2" || mode === "level3" ? "현재 해당 단계 문항을 준비하고 있습니다." : "아직 복습할 문제가 없습니다.");
         return;
       }
+      currentQuizMode = mode;
       active = mode === "dictionaryChallenge"
         ? challengeStage(["level1","level2"])
         : mode === "inferenceChallenge"
@@ -612,7 +651,15 @@
       const correctButton = document.querySelector(`.choice[data-option="${q.answer}"]`);
       correctButton.classList.add("correct");
       attempts++;
-      stageResults.push({ word:q.word, text:q.text.replace(/<[^>]+>/g, ""), correct:choice === q.answer, definition:q.options[q.answer] });
+      stageResults.push({
+        questionId:q.id,
+        level:q.level,
+        word:q.word,
+        text:q.text.replace(/<[^>]+>/g, ""),
+        correct:choice === q.answer,
+        selectedDefinition:q.options[choice],
+        definition:q.options[q.answer]
+      });
       if(choice === q.answer){ score++; wrongIds.delete(q.id); $("feedback").textContent="정답이에요. 문맥에 알맞은 뜻을 잘 찾았어요!"; $("feedback").classList.add("good"); }
       else { document.querySelector(`.choice[data-option="${choice}"]`).classList.add("wrong"); wrongIds.add(q.id); everWrongIds.add(q.id); $("feedback").textContent="한 번 더 뜻을 살펴봐요. 초록색 뜻이 알맞은 답이에요."; $("feedback").classList.add("bad"); }
       updateLiveStats();
@@ -623,9 +670,27 @@
       const rows = stageResults.filter(result => result.correct === correct);
       return rows.length ? rows.map(result => `<li><b>${result.word}</b> · ${result.text}<br><span class="sub">정답: ${result.definition}</span></li>`).join("") : "<li>해당하는 문제가 없어요.</li>";
     }
-    function nextQuestion(){ if(++index < active.length) renderQuestion(); else { sectionsOff(); $("result").classList.remove("hidden"); $("result-copy").textContent=`${active.length}문제 가운데 ${score}문제를 맞혔어요. 정답률은 ${Math.round(score/active.length*100)}%예요.`; $("correct-results").innerHTML=resultItems(true); $("wrong-results").innerHTML=resultItems(false); } }
+    function nextQuestion(){
+      if(++index < active.length) {
+        renderQuestion();
+        return;
+      }
+      sectionsOff();
+      $("result").classList.remove("hidden");
+      $("result-copy").textContent=`${active.length}문제 가운데 ${score}문제를 맞혔어요. 정답률은 ${Math.round(score/active.length*100)}%예요.`;
+      $("correct-results").innerHTML=resultItems(true);
+      $("wrong-results").innerHTML=resultItems(false);
+      if(typeof window.saveStageResult === "function") {
+        window.saveStageResult({
+          mode: currentQuizMode,
+          total: active.length,
+          correct: score,
+          results: stageResults
+        });
+      }
+    }
     loadQuestionBank();
   </script>
-  <script type="module" src="firebase-auth.js?v=temp-firestore-login-20260608-2"></script>
+  <script type="module" src="firebase-auth.js?v=teacher-stats-20260609-1"></script>
 </body>
 </html>
