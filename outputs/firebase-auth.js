@@ -10,6 +10,7 @@ let stopStudentList;
 let stopLearningList;
 let firebaseApi = {};
 let studentLoginInProgress = false;
+let studentLoginLocked = false;
 let teacherStudents = [];
 let teacherLearningAttempts = [];
 
@@ -35,6 +36,8 @@ function friendlyError(error) {
   if (code.includes("popup-closed")) return "Google 로그인 창이 닫혔습니다.";
   if (code.includes("not-found")) return "학생 ID 또는 비밀번호가 맞지 않습니다.";
   if (code.includes("already-exists")) return "이미 사용 중인 학생 ID입니다.";
+  if (code.includes("admin-restricted-operation")) return "Firebase에서 익명 로그인이 꺼져 있습니다. Authentication의 로그인 방법에서 익명을 사용 설정해 주세요.";
+  if (code.includes("too-many-requests")) return "로그인 요청이 잠시 제한되었습니다. 버튼을 반복해서 누르지 말고 10~30분 뒤 다시 시도해 주세요.";
   if (code.includes("permission-denied")) return `권한이 없습니다. Firestore 규칙 게시 상태를 확인해 주세요.${detail}`;
   if (code.includes("unavailable")) return `Firebase 연결이 불안정합니다. 잠시 뒤 다시 시도하세요.${detail}`;
   if (code.includes("internal")) return `Firebase 내부 오류입니다. firebase-config.js의 projectId/authDomain이 Firebase 콘솔 SDK 값과 정확히 같은지 확인해 주세요.${detail}`;
@@ -138,6 +141,7 @@ window.teacherGoogleLogin = async () => {
 
 window.studentPasswordLogin = async event => {
   event.preventDefault();
+  if (studentLoginLocked) return;
   if (!configured) {
     setMessage("student-login-message", "Firebase 설정값을 먼저 입력해야 합니다.", "error");
     return;
@@ -145,12 +149,15 @@ window.studentPasswordLogin = async event => {
 
   const studentId = normalizeStudentId($("student-login-id").value);
   const password = $("student-login-password").value;
+  const submitButton = event.submitter || event.target.querySelector('button[type="submit"]');
   if (!/^[a-z0-9_-]{4,24}$/.test(studentId)) {
     setMessage("student-login-message", "학생 ID는 영문 소문자, 숫자, -, _로 4~24자여야 합니다.", "error");
     return;
   }
 
-  setMessage("student-login-message", "로그인하고 있습니다.");
+  studentLoginLocked = true;
+  if (submitButton) submitButton.disabled = true;
+  setMessage("student-login-message", "로그인하고 있습니다. 버튼을 다시 누르지 마세요.");
   try {
     const loginRef = firebaseApi.doc(db, "studentLogins", studentId);
     const loginSnapshot = await firebaseApi.getDoc(loginRef);
@@ -169,11 +176,18 @@ window.studentPasswordLogin = async event => {
       teacherId: login.teacherId
     };
     studentLoginInProgress = true;
-    if (auth.currentUser) await firebaseApi.signOut(auth);
-    const credential = await firebaseApi.signInAnonymously(auth);
-    profile.authUid = credential.user.uid;
+    let studentUser = auth.currentUser;
+    if (studentUser && !studentUser.isAnonymous) {
+      await firebaseApi.signOut(auth);
+      studentUser = null;
+    }
+    if (!studentUser) {
+      const credential = await firebaseApi.signInAnonymously(auth);
+      studentUser = credential.user;
+    }
+    profile.authUid = studentUser.uid;
     await firebaseApi.setDoc(
-      firebaseApi.doc(db, "studentSessions", credential.user.uid),
+      firebaseApi.doc(db, "studentSessions", studentUser.uid),
       {
         ...profile,
         lastLoginAt: firebaseApi.serverTimestamp()
@@ -188,11 +202,18 @@ window.studentPasswordLogin = async event => {
   } catch (error) {
     studentLoginInProgress = false;
     setMessage("student-login-message", friendlyError(error), "error");
+  } finally {
+    studentLoginLocked = false;
+    if (submitButton) submitButton.disabled = false;
   }
 };
 
 window.appLogout = async () => {
   localStorage.removeItem(STUDENT_SESSION_KEY);
+  if (auth?.currentUser?.isAnonymous) {
+    clearSessionUi();
+    return;
+  }
   if (auth?.currentUser) await firebaseApi.signOut(auth);
   else clearSessionUi();
 };
@@ -631,6 +652,10 @@ if (!configured) {
     }
     if (user.isAnonymous) {
       if (studentLoginInProgress) return;
+      if (!readStudentSession()) {
+        clearSessionUi();
+        return;
+      }
       try {
         const sessionSnapshot = await firestoreModule.getDoc(
           firestoreModule.doc(db, "studentSessions", user.uid)
