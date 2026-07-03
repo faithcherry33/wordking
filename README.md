@@ -1,25 +1,190 @@
-# Wordking Refactor Output
+# 문맥 단어왕
 
-This folder contains a level-separated version of the current GitHub `outputs` files.
+**문맥 단어왕**은 초등학생들이 문장과 문단 속에서 낱말의 뜻을 문맥으로 파악하는 힘을 기르도록 돕는 학습지원 웹앱입니다.
 
-## Files
+학생은 교사가 안내한 계정으로 로그인하여 단계별 문맥 단어 문제를 풀고, 문제 풀이 결과는 Firebase Firestore에 저장됩니다. 교사는 학생별 학습 결과를 확인하여 오답 복습과 보충 지도에 활용할 수 있습니다.
 
-- `index.html`: updated to load separated question bank files.
-- `data/level1.js`: level 1 questions, with `Q294` removed.
-- `data/level2.js`: level 2 questions.
-- `data/level3.js`: level 3 questions.
-- `firebase-auth.js`, `firebase-config.js`: copied from the current repo output.
+---
 
-## Removed Problem
+## 1. 프로젝트 정보
 
-- `Q294`: `종이 울리자 학생들이 교실에 들었다.`
-- Reason: the target word is `들다`, but the sentence contains `학생들이` before the intended target. The underline logic can mistakenly mark the particle-like `들이` portion instead of the verb form `들었다`.
+- **프로젝트명:** 문맥 단어왕
+- **개발자:** 이현경
+- **소속:** 신양초등학교
+- **배포 주소:** https://wordking-web.netlify.app
+- **GitHub 레포지토리:** https://github.com/faithcherry33/wordking
 
-## Behavior Notes
+---
 
-- Level 1 practice loads from `data/level1.js`.
-- Level 2 practice loads from `data/level2.js`.
-- Level 3 practice loads from `data/level3.js`.
-- The first daily challenge still uses both level 1 and level 2 questions via `challengeStage(["level1","level2"])`.
+## 2. 개발 목적
 
-To apply this to GitHub, copy these files into the repository's `outputs/` folder.
+문맥 단어왕은 학생들이 낱말의 뜻을 단순히 암기하는 것이 아니라, 문장 속 단서와 앞뒤 문맥을 활용하여 뜻을 추론하도록 돕기 위해 개발한 웹앱입니다.
+
+초등학생들은 낱말의 사전적 뜻을 외우는 데 그치기 쉽지만, 실제 독해 상황에서는 낱말이 어떤 문맥에서 사용되었는지 살피고 가장 알맞은 뜻을 고르는 능력이 필요합니다.
+
+이 웹앱은 학생들이 문장과 문단 속에서 단어의 의미를 추론하고, 오답을 복습하며, 자신의 문맥 단어 이해력을 점검할 수 있도록 구성하였습니다.
+
+---
+
+## 3. 주요 기능
+
+### 3-1. 학생 로그인
+
+학생은 교사가 발급하거나 안내한 학생 ID와 비밀번호로 로그인합니다.
+
+학생 계정으로 로그인하면 자신의 학습 화면으로 이동하며, 문제 풀이 결과가 Firebase Firestore에 저장될 수 있습니다.
+
+### 3-2. 연습 1단계
+
+한 문장을 읽고 밑줄 친 낱말의 뜻을 고르는 단계입니다.
+
+학생은 문장 속 단서를 살펴보며 낱말의 뜻을 파악합니다.
+
+### 3-3. 연습 2단계
+
+여러 문장이나 짧은 글을 읽고 문맥에 맞는 낱말의 뜻을 고르는 단계입니다.
+
+앞뒤 문장의 관계를 살피며 단어의 의미를 추론하는 힘을 기릅니다.
+
+### 3-4. 연습 3단계
+
+낯선 낱말의 뜻을 앞뒤 문맥을 근거로 추측하는 단계입니다.
+
+학생은 단어 자체만 보는 것이 아니라, 단어가 쓰인 상황과 주변 문장을 함께 살펴보며 의미를 판단합니다.
+
+### 3-5. 오답 복습
+
+학생이 틀린 문제를 다시 확인하고 복습할 수 있습니다.
+
+단순히 정답 여부만 확인하는 것이 아니라, 어떤 문맥 단서를 놓쳤는지 돌아볼 수 있도록 구성하였습니다.
+
+### 3-6. 오늘의 도전
+
+학생은 정해진 문제를 풀고 자신의 결과를 확인할 수 있습니다.
+
+오늘의 도전 결과는 학습 참여를 확인하고 복습 방향을 정하는 자료로 활용할 수 있습니다.
+
+### 3-7. 단어왕 랭킹
+
+오늘 또는 이번 주의 학습 결과를 확인할 수 있습니다.
+
+랭킹은 경쟁 자체보다 학생들이 자신의 학습 참여와 성취를 돌아보는 참고 자료로 활용됩니다.
+
+### 3-8. 교사 관리 기능
+
+교사는 Google 계정으로 로그인하여 학생 계정을 생성하고 관리할 수 있습니다.
+
+또한 학생별 문제 풀이 결과, 정답률, 오답 기록, 반복해서 틀리는 단어 등을 확인하여 보충 지도에 활용할 수 있습니다.
+
+---
+
+## 4. Firebase 백엔드 활용
+
+본 웹앱은 Firebase를 기반으로 학생 로그인과 학습 결과 저장 기능을 처리합니다.
+
+학생이 로그인한 뒤 문제를 풀면 다음과 같은 정보가 Firebase Firestore에 저장될 수 있습니다.
+
+- 학생 ID
+- 학생 표시 이름
+- 학습 단계
+- 전체 문제 수
+- 정답 수
+- 정답률
+- 오답 정보
+- 학습 활동 기록
+- 날짜별, 주간별 도전 기록
+
+저장된 정보는 교사가 학생의 학습 상태를 파악하고 보충 지도에 활용할 수 있습니다.
+
+---
+
+## 5. 화면 구성
+
+### 첫 화면
+
+학생 로그인과 교사 Google 로그인을 선택할 수 있습니다.
+
+화면 하단에는 소속학교, 제작자명, 개인정보처리방침, 이용약관, 사용방법 안내, GitHub 레포지토리 링크를 표시하였습니다.
+
+### 학생 학습 화면
+
+학생은 로그인 후 다음 기능을 이용할 수 있습니다.
+
+- 연습 1단계
+- 연습 2단계
+- 오답 복습
+- 오늘의 도전
+- 단어왕 랭킹
+
+### 문제 풀이 화면
+
+학생은 문장이나 문단을 읽고 문맥에 맞는 낱말의 뜻을 고릅니다.
+
+### 결과 화면
+
+문제 풀이가 끝나면 전체 문제 수, 정답 수, 정답률, 맞힌 문제, 틀린 문제를 확인할 수 있습니다.
+
+### 교사 관리 화면
+
+교사는 학생 계정을 관리하고 학생별 학습 결과를 확인할 수 있습니다.
+
+---
+
+## 6. 사용 방법
+
+1. 웹브라우저에서 아래 주소에 접속합니다.  
+   https://wordking-web.netlify.app
+
+2. 학생은 교사가 안내한 학생 ID와 비밀번호로 로그인합니다.
+
+3. 연습 단계 또는 오늘의 도전 문제를 선택합니다.
+
+4. 문장과 문단을 읽고 문맥에 맞는 낱말의 뜻을 고릅니다.
+
+5. 문제 풀이를 마치면 결과 화면에서 정답 수와 오답 정보를 확인합니다.
+
+6. 틀린 문제는 오답 복습에서 다시 확인할 수 있습니다.
+
+7. 문제 풀이 결과는 Firebase Firestore에 저장되며, 교사는 학생별 학습 기록을 확인할 수 있습니다.
+
+---
+
+## 7. 개인정보 보호 및 계정 안내
+
+본 웹앱은 실제 수업 및 학습 활동에 사용할 수 있도록 구성된 교육용 웹앱입니다.
+
+학생 계정과 교사 Google 계정은 개인정보 보호와 계정 보안을 위해 공개하지 않습니다.
+
+실제 학생 계정에는 학생 식별 정보와 학습 결과가 연결될 수 있으므로, 공개 게시판 또는 GitHub README에는 실제 학생 계정 정보를 제공하지 않습니다.
+
+교사 계정 또한 Google 인증을 사용하므로 공개하지 않습니다.
+
+---
+
+## 8. 개인정보처리방침, 이용약관, 사용방법 안내
+
+본 웹앱은 학습지원 소프트웨어 산출물 조건에 맞추어 다음 안내 페이지를 제공합니다.
+
+- 개인정보처리방침: https://wordking-web.netlify.app/privacy.html
+- 이용약관: https://wordking-web.netlify.app/terms.html
+- 사용방법 안내: https://wordking-web.netlify.app/guide.html
+- GitHub 레포지토리: https://github.com/faithcherry33/wordking
+
+---
+
+## 9. 기술 구성
+
+- 프론트엔드: HTML, CSS, JavaScript
+- 배포: Netlify
+- 인증 및 데이터 저장: Firebase Authentication, Firebase Firestore
+- 소스 관리: GitHub
+
+---
+
+## 10. 기대 효과
+
+문맥 단어왕은 학생들이 낱말의 뜻을 단편적으로 암기하는 대신, 문장과 문단 속에서 의미를 추론하는 경험을 제공한다는 점에서 독해력 향상에 도움을 줄 수 있습니다.
+
+또한 교사는 학생별 정답률과 오답 기록을 바탕으로 어떤 학생이 어떤 유형의 문맥 단어 문제에서 어려움을 겪는지 확인할 수 있습니다.
+
+이를 통해 전체 학급 지도뿐 아니라 개별 학생의 보충 지도에도 활용할 수 있습니다.
