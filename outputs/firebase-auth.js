@@ -3,6 +3,12 @@ import { firebaseConfig } from "./firebase-config.js";
 const $ = id => document.getElementById(id);
 const configured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_");
 const STUDENT_SESSION_KEY = "wordkingStudentSession";
+  const DEMO_STUDENT = {
+  studentId: "judge01",
+  password: "wordking123",
+  displayName: "심사용 학생",
+  teacherId: "demo-teacher"
+};
 
 let auth;
 let db;
@@ -159,6 +165,46 @@ window.studentPasswordLogin = async event => {
   if (submitButton) submitButton.disabled = true;
   setMessage("student-login-message", "로그인하고 있습니다. 버튼을 다시 누르지 마세요.");
   try {
+        if (studentId === DEMO_STUDENT.studentId && password === DEMO_STUDENT.password) {
+      const profile = {
+        role: "student",
+        studentId: DEMO_STUDENT.studentId,
+        displayName: DEMO_STUDENT.displayName,
+        teacherId: DEMO_STUDENT.teacherId,
+        demo: true
+      };
+
+      studentLoginInProgress = true;
+      let studentUser = auth.currentUser;
+
+      if (studentUser && !studentUser.isAnonymous) {
+        await firebaseApi.signOut(auth);
+        studentUser = null;
+      }
+
+      if (!studentUser) {
+        const credential = await firebaseApi.signInAnonymously(auth);
+        studentUser = credential.user;
+      }
+
+      profile.authUid = studentUser.uid;
+
+      await firebaseApi.setDoc(
+        firebaseApi.doc(db, "studentSessions", studentUser.uid),
+        {
+          ...profile,
+          lastLoginAt: firebaseApi.serverTimestamp()
+        },
+        { merge: true }
+      );
+
+      saveStudentSession(profile);
+      studentLoginInProgress = false;
+      $("student-login-password").value = "";
+      setMessage("student-login-message", "");
+      showStudentDashboard(profile);
+      return;
+    }
     const loginRef = firebaseApi.doc(db, "studentLogins", studentId);
     const loginSnapshot = await firebaseApi.getDoc(loginRef);
     if (!loginSnapshot.exists()) throw new Error("not-found");
@@ -641,8 +687,8 @@ if (!configured) {
   const app = appModule.initializeApp(firebaseConfig);
   auth = authModule.getAuth(app);
   db = firestoreModule.getFirestore(app);
-  setMessage("firebase-status", "임시 운영 모드: Functions 없이 Firestore로 학생 로그인을 처리합니다.");
-
+  setMessage("firebase-status", "학생 계정으로 로그인하면 문제 풀이 결과가 Firebase에 저장됩니다.");
+  
   authModule.onAuthStateChanged(auth, async user => {
     if (!user) {
       if (studentLoginInProgress) return;
