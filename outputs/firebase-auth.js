@@ -189,21 +189,25 @@ window.studentPasswordLogin = async event => {
 
       profile.authUid = studentUser.uid;
 
-      await firebaseApi.setDoc(
-        firebaseApi.doc(db, "studentSessions", studentUser.uid),
-        {
-          ...profile,
-          lastLoginAt: firebaseApi.serverTimestamp()
-        },
-        { merge: true }
-      );
+      try {
+  await firebaseApi.setDoc(
+    firebaseApi.doc(db, "studentSessions", studentUser.uid),
+    {
+      ...profile,
+      lastLoginAt: firebaseApi.serverTimestamp()
+    },
+    { merge: true }
+  );
+} catch (sessionError) {
+  console.warn("Demo student session was not saved to Firestore.", sessionError);
+}
 
-      saveStudentSession(profile);
-      studentLoginInProgress = false;
-      $("student-login-password").value = "";
-      setMessage("student-login-message", "");
-      showStudentDashboard(profile);
-      return;
+saveStudentSession(profile);
+studentLoginInProgress = false;
+$("student-login-password").value = "";
+setMessage("student-login-message", "");
+showStudentDashboard(profile);
+return;
     }
     const loginRef = firebaseApi.doc(db, "studentLogins", studentId);
     const loginSnapshot = await firebaseApi.getDoc(loginRef);
